@@ -334,7 +334,7 @@ export default function App() {
         </div>
 
         <div className="mt-6 text-xs text-white/45">
-          Next: optional drag-and-drop UI polish + ATS theme mode.
+          This website is a practice project built with Vite and Tailwind. Thank you for your patience as I continue improving it.
         </div>
       </div>
     </div>
