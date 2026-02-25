@@ -226,17 +226,13 @@ export default function App() {
     const imgW = pdfW;
     const imgH = (canvas.height * imgW) / canvas.width;
 
-    let heightLeft = imgH;
-    let position = 0;
+    const pages = Math.max(1, Math.ceil((imgH - 0.5) / pdfH));
 
-    pdf.addImage(imgData, "PNG", 0, position, imgW, imgH, undefined, "FAST");
-    heightLeft -= pdfH;
+    pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH, undefined, "FAST");
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgH;
+    for (let i = 1; i < pages; i++) {
       pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgW, imgH, undefined, "FAST");
-      heightLeft -= pdfH;
+      pdf.addImage(imgData, "PNG", 0, -i * pdfH, imgW, imgH, undefined, "FAST");
     }
 
     pdf.save(fileName);
