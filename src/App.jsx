@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import ResumeForm from "./components/ResumeForm";
 import ResumePreview from "./components/ResumePreview";
@@ -70,7 +70,9 @@ function cleanResumeData(data) {
     (e) => e && (e.school || e.degree || e.start || e.end)
   );
 
-  next.projects = (next.projects || []).filter((p) => p && (p.name || p.link || p.desc));
+  next.projects = (next.projects || []).filter(
+    (p) => p && (p.name || p.link || p.desc)
+  );
 
   next.settings = next.settings || {};
   next.sections =
@@ -117,6 +119,28 @@ export default function App() {
   const previewRef = useRef(null);
   const [exporting, setExporting] = useState(false);
   const [mobileTab, setMobileTab] = useState("edit");
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobile) setPreviewOpen(false);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setPreviewOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewOpen]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    document.body.style.overflow = previewOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [previewOpen, isMobile]);
 
   const settings = data.settings || {};
   const zoom = settings.zoom ?? 1;
@@ -270,8 +294,77 @@ export default function App() {
     </div>
   );
 
+  const MobilePreviewModal = previewOpen ? (
+    <div className="fixed inset-0 z-[9999] lg:hidden">
+      <div
+        className="absolute inset-0 bg-black/70"
+        onClick={() => setPreviewOpen(false)}
+      />
+      <div className="absolute inset-x-0 bottom-0 top-10 rounded-t-3xl border border-white/10 bg-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="text-sm font-extrabold text-white">Live Preview</div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(false)}
+              className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/15"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        <div className="h-[calc(100%-52px)] overflow-auto p-3">
+          <div className="mx-auto w-full max-w-[900px]">
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
+              <div className="mx-auto w-full">
+                <div style={{ transform: "scale(0.92)", transformOrigin: "top center" }}>
+                  <ResumePreview data={data} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="grid grid-cols-1 gap-3">
+                <label className="block">
+                  <div className="mb-1 text-xs font-semibold text-white/60">
+                    PDF filename base
+                  </div>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30 focus:border-white/20"
+                    value={settings.fileBaseName || ""}
+                    onChange={(e) => updateSettings({ fileBaseName: e.target.value })}
+                    placeholder="e.g. Mark Daryl Pineda"
+                  />
+                </label>
+
+                <button
+                  onClick={() =>
+                    updateSettings({
+                      includeDateInFilename: !(settings.includeDateInFilename ?? false),
+                    })
+                  }
+                  className="h-[48px] rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/15"
+                  type="button"
+                >
+                  {settings.includeDateInFilename ?? false
+                    ? "Date in filename: ON"
+                    : "Date in filename: OFF"}
+                </button>
+              </div>
+            </div>
+
+            <div className="h-6" />
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      {MobilePreviewModal}
+
       <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -386,7 +479,25 @@ export default function App() {
         </div>
 
         <div className="mt-6 lg:hidden">
-          {mobileTab === "edit" ? <div className="space-y-4">{FormPanel}</div> : PreviewPanel}
+          {mobileTab === "edit" ? (
+            <div className="space-y-4">
+              {FormPanel}
+
+              <div className="sticky bottom-4 z-40">
+                <div className="mx-auto flex max-w-md justify-center px-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(true)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/15 px-4 py-3 text-sm font-extrabold text-white shadow-xl hover:bg-white/20"
+                  >
+                    Live Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            PreviewPanel
+          )}
         </div>
 
         <div className="mt-6 text-xs text-white/45">
