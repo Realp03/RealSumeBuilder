@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import ResumeForm from "./components/ResumeForm";
 import ResumePreview from "./components/ResumePreview";
 import { defaultResume } from "./data/defaultResume";
@@ -148,9 +149,7 @@ export default function App() {
 
   useEffect(() => {
     if (!previewOpen) return;
-
     const A4W = 794;
-
     const calc = () => {
       const el = modalFitRef.current;
       if (!el) return;
@@ -158,7 +157,6 @@ export default function App() {
       const s = Math.min(1, (w - 16) / A4W);
       setFitScale(s > 0 ? s : 1);
     };
-
     calc();
     window.addEventListener("resize", calc);
     return () => window.removeEventListener("resize", calc);
@@ -202,31 +200,44 @@ export default function App() {
     if (!exportRef.current) return;
     setExporting(true);
 
-    const el = exportRef.current;
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageW = pdf.internal.pageSize.getWidth();
-
     const base = settings.fileBaseName || data.basics?.fullName || "resume";
     const baseSlug = filenameSlug(base);
     const fileName = settings.includeDateInFilename
       ? `${baseSlug}-resume-${formatDateYYYYMMDD(new Date())}.pdf`
       : `${baseSlug}-resume.pdf`;
 
-    await pdf.html(el, {
-      x: 0,
-      y: 0,
-      width: pageW,
+    const el = exportRef.current;
+
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
       windowWidth: 794,
-      autoPaging: "text",
-      html2canvas: {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-      },
+      scrollX: 0,
+      scrollY: 0,
     });
+
+    const imgData = canvas.toDataURL("image/png", 1.0);
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+
+    const imgW = pdfW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    let heightLeft = imgH;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgW, imgH, undefined, "FAST");
+    heightLeft -= pdfH;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgW, imgH, undefined, "FAST");
+      heightLeft -= pdfH;
+    }
 
     pdf.save(fileName);
     setExporting(false);
@@ -341,36 +352,6 @@ export default function App() {
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="grid grid-cols-1 gap-3">
-              <label className="block">
-                <div className="mb-1 text-xs font-semibold text-white/60">
-                  PDF filename base
-                </div>
-                <input
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30 focus:border-white/20"
-                  value={settings.fileBaseName || ""}
-                  onChange={(e) => updateSettings({ fileBaseName: e.target.value })}
-                  placeholder="e.g. Mark Daryl Pineda"
-                />
-              </label>
-
-              <button
-                onClick={() =>
-                  updateSettings({
-                    includeDateInFilename: !(settings.includeDateInFilename ?? false),
-                  })
-                }
-                className="h-[48px] rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/15"
-                type="button"
-              >
-                {settings.includeDateInFilename ?? false
-                  ? "Date in filename: ON"
-                  : "Date in filename: OFF"}
-              </button>
-            </div>
-          </div>
-
           <div className="h-6" />
         </div>
       </div>
@@ -379,11 +360,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <div className="fixed left-[-99999px] top-0 bg-white">
-        <div ref={exportRef} className="bg-white">
-          <ResumePreview
-            data={{ ...data, settings: { ...(data.settings || {}), zoom: 1 } }}
-          />
+      <div className="fixed left-[-10000px] top-0 bg-white">
+        <div style={{ width: 794 }}>
+          <div ref={exportRef} className="bg-white">
+            <ResumePreview data={{ ...data, settings: { ...(data.settings || {}), zoom: 1 } }} />
+          </div>
         </div>
       </div>
 
@@ -461,18 +442,6 @@ export default function App() {
               type="button"
             >
               {settings.showPhoto ?? true ? "Hide Photo" : "Show Photo"}
-            </button>
-
-            <button
-              onClick={() =>
-                updateSettings({
-                  showFullProjectLinks: !(settings.showFullProjectLinks ?? true),
-                })
-              }
-              className="flex-1 sm:flex-none rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15"
-              type="button"
-            >
-              {settings.showFullProjectLinks ?? true ? "Short Links" : "Full Links"}
             </button>
 
             <button
