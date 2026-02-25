@@ -117,6 +117,7 @@ export default function App() {
   }, []);
 
   const previewRef = useRef(null);
+  const exportRef = useRef(null);
   const modalFitRef = useRef(null);
 
   const [exporting, setExporting] = useState(false);
@@ -198,10 +199,10 @@ export default function App() {
   const onClean = () => setData((prev) => cleanResumeData(prev));
 
   const onExportPDF = async () => {
-    if (!previewRef.current) return;
+    if (!exportRef.current) return;
     setExporting(true);
 
-    const el = previewRef.current;
+    const el = exportRef.current;
 
     const pdf = new jsPDF("p", "mm", "a4");
     const pageW = pdf.internal.pageSize.getWidth();
@@ -216,12 +217,14 @@ export default function App() {
       x: 0,
       y: 0,
       width: pageW,
-      windowWidth: el.scrollWidth,
+      windowWidth: 794,
       autoPaging: "text",
       html2canvas: {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
       },
     });
 
@@ -376,6 +379,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <div className="fixed left-[-99999px] top-0 bg-white">
+        <div ref={exportRef} className="bg-white">
+          <ResumePreview
+            data={{ ...data, settings: { ...(data.settings || {}), zoom: 1 } }}
+          />
+        </div>
+      </div>
+
       {MobilePreviewModal}
 
       <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6">
