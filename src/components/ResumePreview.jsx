@@ -17,7 +17,10 @@ export default function ResumePreview({ data }) {
 
 function Page({ children }) {
   return (
-    <div className="h-full w-full rounded-2xl border border-slate-200 bg-white p-10 text-slate-900 shadow-xl">
+    <div
+      className="w-[794px] min-h-[1123px] rounded-2xl border border-slate-200 bg-white p-10 text-slate-900 shadow-xl"
+      style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+    >
       {children}
     </div>
   );
@@ -153,7 +156,7 @@ function Projects({ items, showFullLinks }) {
               {p.name || "Project"}
             </div>
             <div className="text-xs font-semibold text-slate-500 break-all">
-              {showFullLinks ? (p.link || "") : domainOnly(p.link || "")}
+              {showFullLinks ? p.link || "" : domainOnly(p.link || "")}
             </div>
           </div>
           {p.desc ? (
@@ -415,7 +418,10 @@ function CompactLayout({ data }) {
   const showFullLinks = settings.showFullProjectLinks ?? true;
 
   return (
-    <div className="h-full w-full rounded-2xl border border-slate-200 bg-white p-8 text-slate-900 shadow-xl">
+    <div
+      className="w-[794px] min-h-[1123px] rounded-2xl border border-slate-200 bg-white p-8 text-slate-900 shadow-xl"
+      style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+    >
       <div className="flex items-start justify-between gap-7">
         <div className="min-w-0">
           <div className="text-[26px] font-extrabold leading-tight">
