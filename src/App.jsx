@@ -117,9 +117,12 @@ export default function App() {
   }, []);
 
   const previewRef = useRef(null);
+  const modalFitRef = useRef(null);
+
   const [exporting, setExporting] = useState(false);
   const [mobileTab, setMobileTab] = useState("edit");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [fitScale, setFitScale] = useState(1);
 
   useEffect(() => {
     if (!isMobile) setPreviewOpen(false);
@@ -141,6 +144,24 @@ export default function App() {
       document.body.style.overflow = "";
     };
   }, [previewOpen, isMobile]);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+
+    const A4W = 794;
+
+    const calc = () => {
+      const el = modalFitRef.current;
+      if (!el) return;
+      const w = el.getBoundingClientRect().width;
+      const s = Math.min(1, (w - 16) / A4W);
+      setFitScale(s > 0 ? s : 1);
+    };
+
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, [previewOpen]);
 
   const settings = data.settings || {};
   const zoom = settings.zoom ?? 1;
@@ -216,7 +237,9 @@ export default function App() {
         type="button"
         onClick={() => setMobileTab("edit")}
         className={`flex-1 rounded-2xl px-3 py-2 text-sm font-extrabold ${
-          mobileTab === "edit" ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10"
+          mobileTab === "edit"
+            ? "bg-white/15 text-white"
+            : "text-white/70 hover:bg-white/10"
         }`}
       >
         Edit
@@ -244,12 +267,7 @@ export default function App() {
 
       <div className="overflow-auto rounded-2xl border border-white/10 bg-black/20 p-2 sm:p-3">
         <div className="mx-auto w-full max-w-[820px]">
-          <div
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: "top center",
-            }}
-          >
+          <div style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}>
             <div ref={previewRef}>
               <ResumePreview data={data} />
             </div>
@@ -260,7 +278,9 @@ export default function App() {
       <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
-            <div className="mb-1 text-xs font-semibold text-white/60">PDF filename base</div>
+            <div className="mb-1 text-xs font-semibold text-white/60">
+              PDF filename base
+            </div>
             <input
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30 focus:border-white/20"
               value={settings.fileBaseName || ""}
@@ -296,66 +316,59 @@ export default function App() {
 
   const MobilePreviewModal = previewOpen ? (
     <div className="fixed inset-0 z-[9999] lg:hidden">
-      <div
-        className="absolute inset-0 bg-black/70"
-        onClick={() => setPreviewOpen(false)}
-      />
+      <div className="absolute inset-0 bg-black/70" onClick={() => setPreviewOpen(false)} />
       <div className="absolute inset-x-0 bottom-0 top-10 rounded-t-3xl border border-white/10 bg-slate-950 shadow-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="text-sm font-extrabold text-white">Live Preview</div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(false)}
-              className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/15"
-            >
-              Close
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(false)}
+            className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/15"
+          >
+            Close
+          </button>
         </div>
 
         <div className="h-[calc(100%-52px)] overflow-auto p-3">
-          <div className="mx-auto w-full max-w-[900px]">
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
-              <div className="mx-auto w-full">
-                <div style={{ transform: "scale(0.92)", transformOrigin: "top center" }}>
-                  <ResumePreview data={data} />
-                </div>
+          <div ref={modalFitRef} className="w-full overflow-hidden">
+            <div className="flex justify-center">
+              <div style={{ transform: `scale(${fitScale})`, transformOrigin: "top center" }}>
+                <ResumePreview data={data} />
               </div>
             </div>
-
-            <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-              <div className="grid grid-cols-1 gap-3">
-                <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-white/60">
-                    PDF filename base
-                  </div>
-                  <input
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30 focus:border-white/20"
-                    value={settings.fileBaseName || ""}
-                    onChange={(e) => updateSettings({ fileBaseName: e.target.value })}
-                    placeholder="e.g. Mark Daryl Pineda"
-                  />
-                </label>
-
-                <button
-                  onClick={() =>
-                    updateSettings({
-                      includeDateInFilename: !(settings.includeDateInFilename ?? false),
-                    })
-                  }
-                  className="h-[48px] rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/15"
-                  type="button"
-                >
-                  {settings.includeDateInFilename ?? false
-                    ? "Date in filename: ON"
-                    : "Date in filename: OFF"}
-                </button>
-              </div>
-            </div>
-
-            <div className="h-6" />
           </div>
+
+          <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="grid grid-cols-1 gap-3">
+              <label className="block">
+                <div className="mb-1 text-xs font-semibold text-white/60">
+                  PDF filename base
+                </div>
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30 focus:border-white/20"
+                  value={settings.fileBaseName || ""}
+                  onChange={(e) => updateSettings({ fileBaseName: e.target.value })}
+                  placeholder="e.g. Mark Daryl Pineda"
+                />
+              </label>
+
+              <button
+                onClick={() =>
+                  updateSettings({
+                    includeDateInFilename: !(settings.includeDateInFilename ?? false),
+                  })
+                }
+                className="h-[48px] rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/15"
+                type="button"
+              >
+                {settings.includeDateInFilename ?? false
+                  ? "Date in filename: ON"
+                  : "Date in filename: OFF"}
+              </button>
+            </div>
+          </div>
+
+          <div className="h-6" />
         </div>
       </div>
     </div>
